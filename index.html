@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Finir le Rubik’s cube</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,500;1,600&family=Rubik:wght@400;500;700&display=swap">
+<style>
+/* Layout : une colonne étroite façon carnet, lisible au téléphone ; chaque étape = une tablette avec objectif + formule */
+:root {
+  --bg: #F3EFE7; --surface: #FBF9F4; --line: #D9CFBD; --ink: #2A2521; --body: #5A524A; --accent: #7A5C25; --tile: #24201C; --tile-text: #F3EFE7; --done: #3F6B4A;
+  --display: 'Cormorant Garamond', Georgia, serif; --text: 'Rubik', Verdana, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #1E1B18; --surface: #29251F; --line: #3E372F; --ink: #F1ECE3; --body: #C6BDB0; --accent: #D2AE66; --tile: #F1ECE3; --tile-text: #1E1B18; --done: #8CC49A; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #1E1B18; --surface: #29251F; --line: #3E372F; --ink: #F1ECE3; --body: #C6BDB0; --accent: #D2AE66; --tile: #F1ECE3; --tile-text: #1E1B18; --done: #8CC49A; color-scheme: dark }
+
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--text); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 680px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.05; text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.eyebrow { font-size: 13px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); }
+header { display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: clamp(44px, 11vw, 64px); }
+h1 i { color: var(--accent); font-weight: 600; }
+.lead { color: var(--body); font-size: 18px; }
+blockquote { margin: 0; border-left: 2px solid var(--accent); padding-left: 16px; display: flex; flex-direction: column; gap: 4px; }
+blockquote p { font-family: var(--display); font-style: italic; font-size: 24px; line-height: 1.25; }
+blockquote cite { font-style: normal; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); }
+
+.progress { display: flex; flex-direction: column; gap: 8px; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar span { display: block; height: 100%; width: 0; background: var(--accent); transition: width 400ms ease; }
+.progress p { font-size: 14px; color: var(--body); }
+
+section.block { display: flex; flex-direction: column; gap: 16px; }
+h2 { font-size: 34px; }
+.notation { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.notation div { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: flex; gap: 10px; align-items: baseline; }
+.notation b { font-family: var(--display); font-size: 26px; color: var(--accent); line-height: 1; min-width: 18px; }
+.notation span { font-size: 14px; color: var(--body); }
+.rules { display: flex; flex-direction: column; gap: 6px; color: var(--body); font-size: 15px; padding-left: 20px; margin: 0; }
+.rules b { color: var(--ink); }
+
+.steps { display: flex; flex-direction: column; gap: 20px; list-style: none; padding: 0; margin: 0; }
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: flex; flex-direction: column; gap: 14px; transition: border-color 300ms ease; }
+.step.is-done { border-color: var(--done); }
+.step-head { display: flex; gap: 16px; align-items: center; }
+.step-num { font-family: var(--display); font-size: 44px; font-weight: 700; color: var(--accent); line-height: 1; min-width: 44px; }
+.step-head h3 { font-size: 28px; flex: 1; min-width: 0; }
+.goal { display: flex; gap: 16px; align-items: center; }
+.goal svg { flex: none; }
+.goal p { font-size: 15px; color: var(--body); min-width: 0; }
+.goal p b { color: var(--ink); }
+.how { display: flex; flex-direction: column; gap: 8px; padding-left: 20px; margin: 0; }
+.how li { padding-left: 4px; }
+.how li::marker { color: var(--accent); font-weight: 700; }
+.alg { display: flex; flex-direction: column; gap: 6px; }
+.alg-label { font-size: 13px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--body); }
+.moves { display: flex; flex-wrap: wrap; gap: 6px; }
+.mv { background: var(--tile); color: var(--tile-text); font-family: var(--display); font-weight: 700; font-size: 26px; line-height: 1; padding: 8px 0; min-width: 48px; text-align: center; border-radius: 6px; }
+.tip { font-size: 15px; color: var(--body); font-style: italic; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 500; cursor: pointer; align-self: flex-start; padding: 6px 0; }
+.check input { width: 22px; height: 22px; accent-color: var(--done); margin: 0; }
+.check input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.is-done .check { color: var(--done); }
+
+footer { display: flex; flex-direction: column; gap: 20px; border-top: 1px solid var(--line); padding-top: 32px; }
+.final { font-family: var(--display); font-style: italic; font-weight: 600; font-size: 44px; color: var(--accent); }
+.small { font-size: 14px; color: var(--body); }
+@media (max-width: 420px) { .notation { grid-template-columns: repeat(2, 1fr); } .step { padding: 16px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+<header>
+<p class="eyebrow">Après la séance · méthode débutant</p>
+<h1>Finir le cube, <i>étape par étape</i></h1>
+<p class="lead">Vous savez déjà lire la notation et faire R U R' U'. Avec 7 étapes et quelques formules, vous pouvez résoudre le cube en entier. Comptez une à deux semaines d’entraînement, quelques minutes par jour.</p>
+<blockquote><p>« Ce n’est pas parce que les choses sont difficiles que nous n’osons pas ; c’est parce que nous n’osons pas qu’elles sont difficiles. »</p><cite>Sénèque</cite></blockquote>
+<div class="progress" aria-live="polite"><div class="bar"><span id="bar"></span></div><p id="progress-text">0 étape sur 7 maîtrisée</p></div>
+</header>
+
+<section class="block">
+<h2>Rappel : la langue du cube</h2>
+<div class="notation">
+<div><b>R</b><span>droite</span></div><div><b>L</b><span>gauche</span></div><div><b>U</b><span>haut</span></div>
+<div><b>D</b><span>bas</span></div><div><b>F</b><span>devant</span></div><div><b>B</b><span>derrière</span></div>
+</div>
+<ul class="rules">
+<li><b>Une lettre seule</b> : un quart de tour dans le sens des aiguilles d’une montre, en regardant cette face.</li>
+<li><b>L’apostrophe (« prime »)</b> : dans l’autre sens. R' = la droite descend.</li>
+<li><b>Le 2</b> : un demi-tour. U2 = deux quarts de tour du haut.</li>
+<li><b>Les centres ne bougent jamais</b> : le centre donne la couleur de sa face.</li>
+</ul>
+</section>
+
+<section class="block">
+<h2>Les 7 étapes</h2>
+<ol class="steps">
+
+<li class="step" data-step="1">
+<div class="step-head"><span class="step-num">I</span><h3>La croix blanche</h3></div>
+<div class="goal"><svg data-face="xWx/WWW/xWx" aria-label="Objectif : croix blanche sur la face blanche"></svg><p><b>Objectif</b> : une croix blanche autour du centre blanc, et chaque arête alignée avec le centre de son côté.</p></div>
+<ol class="how">
+<li>Blanc en haut. Cherchez une arête blanche (une pièce à 2 couleurs).</li>
+<li>Amenez-la en bas, sous le centre de son autre couleur (l’arête blanc-vert sous le centre vert).</li>
+<li>Tournez cette face deux fois (F2) : l’arête monte à sa place. Recommencez pour les 4 arêtes.</li>
+</ol>
+<p class="tip">Pas de formule ici : c’est l’étape où l’on réfléchit. Prenez votre temps.</p>
+<label class="check"><input type="checkbox" id="step-1"> Je sais faire</label>
+</li>
+
+<li class="step" data-step="2">
+<div class="step-head"><span class="step-num">II</span><h3>Les coins blancs</h3></div>
+<div class="goal"><svg data-face="WWW/WWW/WWW" aria-label="Objectif : face blanche complète"></svg><p><b>Objectif</b> : toute la face blanche, avec la première couronne de chaque côté.</p></div>
+<ol class="how">
+<li>Retournez le cube : <b>blanc en bas</b>, jaune en haut.</li>
+<li>Trouvez un coin blanc dans la couche du haut. Tournez U pour le placer juste au-dessus de sa place (devant à droite).</li>
+<li>Répétez la formule de la séance jusqu’à ce que le coin soit bien placé :</li>
+</ol>
+<div class="alg"><p class="alg-label">Votre formule, à répéter</p><div class="moves" data-alg="R U R' U'"></div></div>
+<p class="tip">C’est la formule apprise en séance ! Au plus 6 répétitions, comme le cube qui revenait résolu. Un coin blanc coincé en bas au mauvais endroit : mettez-le devant à droite, faites la formule une fois, il remonte.</p>
+<label class="check"><input type="checkbox" id="step-2"> Je sais faire</label>
+</li>
+
+<li class="step" data-step="3">
+<div class="step-head"><span class="step-num">III</span><h3>La deuxième couronne</h3></div>
+<div class="goal"><svg data-face="xxx/GGG/GGG" aria-label="Objectif : les deux rangées du bas de chaque côté sont complètes"></svg><p><b>Objectif</b> : les deux couronnes du bas terminées sur les 4 côtés.</p></div>
+<ol class="how">
+<li>Jaune en haut. Trouvez en haut une arête <b>sans jaune</b>.</li>
+<li>Tournez U pour aligner sa couleur de devant avec le centre de devant (elle forme un T à l’envers).</li>
+<li>Regardez sa couleur du dessus : doit-elle partir à droite ou à gauche ?</li>
+</ol>
+<div class="alg"><p class="alg-label">Vers la droite</p><div class="moves" data-alg="U R U' R' U' F' U F"></div></div>
+<div class="alg"><p class="alg-label">Vers la gauche</p><div class="moves" data-alg="U' L' U L U F U' F'"></div></div>
+<p class="tip">Une arête mal placée au milieu : faites une des formules pour la remonter, puis replacez-la.</p>
+<label class="check"><input type="checkbox" id="step-3"> Je sais faire</label>
+</li>
+
+<li class="step" data-step="4">
+<div class="step-head"><span class="step-num">IV</span><h3>La croix jaune</h3></div>
+<div class="goal"><svg data-face="xYx/YYY/xYx" aria-label="Objectif : croix jaune sur la face du haut"></svg><p><b>Objectif</b> : une croix jaune sur le dessus. Les côtés ne comptent pas encore.</p></div>
+<ol class="how">
+<li><b>Un point</b> au centre : faites la formule n’importe comment.</li>
+<li><b>Un L</b> : tenez-le en haut à gauche (arêtes du fond et de gauche), faites la formule.</li>
+<li><b>Une ligne</b> : tenez-la horizontale, faites la formule. La croix apparaît.</li>
+</ol>
+<div class="alg"><p class="alg-label">Formule de la croix</p><div class="moves" data-alg="F R U R' U' F'"></div></div>
+<p class="tip">Regardez bien le milieu : c’est votre formule R U R' U', entourée de F et F'.</p>
+<label class="check"><input type="checkbox" id="step-4"> Je sais faire</label>
+</li>
+
+<li class="step" data-step="5">
+<div class="step-head"><span class="step-num">V</span><h3>Aligner les arêtes jaunes</h3></div>
+<div class="goal"><svg data-face="xGx/GGG/GGG" aria-label="Objectif : l’arête du haut est de la même couleur que son côté"></svg><p><b>Objectif</b> : chaque branche de la croix jaune est de la couleur du centre de son côté.</p></div>
+<ol class="how">
+<li>Tournez U jusqu’à avoir au moins 2 arêtes bien alignées.</li>
+<li>Si elles sont côte à côte : placez-les au fond et à droite. Si elles sont face à face : peu importe, faites la formule une fois puis recommencez.</li>
+</ol>
+<div class="alg"><p class="alg-label">Formule d’échange</p><div class="moves" data-alg="R U R' U R U2 R' U"></div></div>
+<label class="check"><input type="checkbox" id="step-5"> Je sais faire</label>
+</li>
+
+<li class="step" data-step="6">
+<div class="step-head"><span class="step-num">VI</span><h3>Placer les coins jaunes</h3></div>
+<div class="goal"><svg data-face="YxY/xYx/YxY" aria-label="Objectif : chaque coin jaune est à sa place"></svg><p><b>Objectif</b> : chaque coin à sa place, même s’il est tourné. Un coin est à sa place quand ses 3 couleurs sont celles des 3 centres autour.</p></div>
+<ol class="how">
+<li>Trouvez un coin déjà à sa place. Tenez-le devant à droite, en haut.</li>
+<li>Faites la formule, vérifiez, recommencez si besoin. Aucun coin à sa place ? Faites-la une fois depuis n’importe où.</li>
+</ol>
+<div class="alg"><p class="alg-label">Formule de placement</p><div class="moves" data-alg="U R U' L' U R' U' L"></div></div>
+<label class="check"><input type="checkbox" id="step-6"> Je sais faire</label>
+</li>
+
+<li class="step" data-step="7">
+<div class="step-head"><span class="step-num">VII</span><h3>Tourner les coins jaunes</h3></div>
+<div class="goal"><svg data-face="YYY/YYY/YYY" aria-label="Objectif : face jaune complète, cube résolu"></svg><p><b>Objectif</b> : la face jaune complète. Le cube est fini !</p></div>
+<ol class="how">
+<li>Jaune en haut. Mettez un coin mal tourné devant à droite, en haut.</li>
+<li>Répétez la formule (2 ou 4 fois) jusqu’à ce que son jaune soit sur le dessus.</li>
+<li>Tournez <b>seulement U</b> pour amener le coin suivant devant à droite. Recommencez. Ne tournez jamais le cube entier.</li>
+<li>Un dernier U pour tout aligner.</li>
+</ol>
+<div class="alg"><p class="alg-label">Formule, à répéter</p><div class="moves" data-alg="R' D' R D"></div></div>
+<p class="tip">Pendant cette étape, le bas du cube a l’air détruit. C’est normal : continuez, il se répare tout seul à la fin. Faites confiance à la méthode.</p>
+<label class="check"><input type="checkbox" id="step-7"> Je sais faire</label>
+</li>
+
+</ol>
+</section>
+
+<footer>
+<blockquote><p>« L’obstacle à l’action fait avancer l’action. Ce qui barre la route devient la route. »</p><cite>Marc Aurèle · Pensées</cite></blockquote>
+<p class="final">Vous avez osé. Continuez.</p>
+<p class="small">Votre progression est gardée sur ce téléphone. Prochaine étape quand tout est coché : chronométrez-vous, puis visez moins d’une minute.</p>
+</footer>
+</div>
+
+<script>
+(function () {
+  var C = { W: '#FFFFFF', Y: '#FFD500', G: '#009E60', x: '#B8B0A3' };
+  document.querySelectorAll('svg[data-face]').forEach(function (svg) {
+    var rows = svg.getAttribute('data-face').split('/'), s = 26, g = 4, pad = 4, size = pad * 2 + s * 3 + g * 2;
+    svg.setAttribute('width', size); svg.setAttribute('height', size); svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+    svg.setAttribute('role', 'img');
+    var out = '<rect width="' + size + '" height="' + size + '" rx="8" fill="#1A1714"/>';
+    rows.forEach(function (row, y) { row.split('').forEach(function (c, x) {
+      out += '<rect x="' + (pad + x * (s + g)) + '" y="' + (pad + y * (s + g)) + '" width="' + s + '" height="' + s + '" rx="4" fill="' + C[c] + '"/>';
+    }); });
+    svg.innerHTML = out;
+  });
+  document.querySelectorAll('[data-alg]').forEach(function (el) {
+    el.innerHTML = el.getAttribute('data-alg').split(' ').map(function (m) { return '<span class="mv">' + m + '</span>'; }).join('');
+    el.setAttribute('aria-label', 'Formule : ' + el.getAttribute('data-alg'));
+  });
+  var KEY = 'cube-guide-steps', saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) { saved = {}; }
+  var boxes = document.querySelectorAll('.check input');
+  function update() {
+    var n = 0;
+    boxes.forEach(function (b) { b.closest('.step').classList.toggle('is-done', b.checked); if (b.checked) n++; });
+    document.getElementById('bar').style.width = (n / 7 * 100) + '%';
+    document.getElementById('progress-text').textContent = n === 7 ? 'Les 7 étapes sont maîtrisées. Bravo !' : n + (n > 1 ? ' étapes' : ' étape') + ' sur 7 maîtrisée' + (n > 1 ? 's' : '');
+  }
+  boxes.forEach(function (b) {
+    b.checked = !!saved[b.id];
+    b.addEventListener('change', function () { saved[b.id] = b.checked; try { localStorage.setItem(KEY, JSON.stringify(saved)); } catch (e) {} update(); });
+  });
+  update();
+})();
+</script>
+</body>
+</html>
